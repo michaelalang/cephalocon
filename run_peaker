@@ -1,0 +1,11 @@
+#!/bin/bash
+
+podman rm -f peaker
+podman run -d \
+  --name peaker \
+  --rm \
+  -v $(pwd)/certs:/certs \
+  --env-file aws_c.env \
+  -e THREADS=50 \
+  localhost/cephalocon-tools:latest peaker
+

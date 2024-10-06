@@ -1,0 +1,9 @@
+#!/bin/bash
+
+podman rm -f grafana 
+podman run -d \
+  --name grafana \
+  --rm \
+  -v $(pwd)/provisioning:/etc/grafana/provisioning \
+  -p 3000:3000 \
+  docker.io/grafana/grafana:latest 

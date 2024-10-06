@@ -1,0 +1,7 @@
+#!/bin/bash
+
+podman rm -f prometheus
+podman run --rm -d --name prometheus -p 9090:9090 \
+   -v $(pwd)/prometheus.yml:/etc/prometheus/prometheus.yml \
+   -v prometheus:/prometheus \
+   docker.io/prom/prometheus 

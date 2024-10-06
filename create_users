@@ -1,0 +1,10 @@
+#!/bin/bash -x 
+
+for u in $(seq 1 50) ; do 
+    /usr/bin/radosgw-admin user create --uid=user${u} \
+      --display-name=user${u} \
+      --access-key=user${u} \
+      --secret-key=user${u} \
+      --rgw-zone=${RGWZONE} \
+      --rgw-realm=${RGWREALM}
+done

@@ -1,0 +1,17 @@
+              - match:
+                  prefix: "/"
+                  headers:
+                    - name: ":authority"
+                      string_match:
+                        exact: "${name}"
+                    - name: "User-Agent"
+                      string_match:
+                        prefix: "Mozilla ${region}"
+                route:
+                  cluster: dashboard-${region}
+                  timeout: 300s
+                  max_stream_duration:
+                    max_stream_duration: 0s
+                  retry_policy:
+                    retry_on: connect-failure,refused-stream,gateway-error,deadline-exceeded,unavailable
+                    num_retries: 2

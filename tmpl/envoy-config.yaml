@@ -1,0 +1,498 @@
+node:
+  id: id_1
+  cluster: rgw
+
+admin:
+  address:
+    socket_address:
+      address: 0.0.0.0
+      port_value: 15000
+static_resources:
+  listeners:
+  - address:
+      socket_address:
+        address: 0.0.0.0
+        port_value: 443
+    listener_filters:
+    - name: "envoy.filters.listener.tls_inspector"
+      typed_config:
+        "@type": type.googleapis.com/envoy.extensions.filters.listener.tls_inspector.v3.TlsInspector
+    filter_chains:
+    - filter_chain_match:
+        server_names: ["s3.example.com:443", "s3.example.com", "s3-east.example.com:443", "s3-east.example.com", "s3-west.example.com:443", "s3-west.example.com"]
+      filters:
+      - name: envoy.filters.network.http_connection_manager
+        typed_config:
+          "@type": type.googleapis.com/envoy.extensions.filters.network.http_connection_manager.v3.HttpConnectionManager
+          codec_type: AUTO
+          access_log:
+          - name: "envoy.access_loggers.stderr"
+            typed_config:
+              "@type": "type.googleapis.com/envoy.extensions.access_loggers.stream.v3.StderrAccessLog"
+          stat_prefix: s3-rgw-global
+          route_config:
+            name: s3-rgw
+            virtual_hosts:
+            - name: s3-rgw-global
+              domains:
+              - "s3.example.com:443"
+              - "s3.example.com"
+              routes:
+              - match:
+                  prefix: "/"
+                  headers:
+                    - name: ":authority"
+                      string_match:
+                        exact: "s3.example.com"
+                    - name: "User-Agent"
+                      string_match:
+                        prefix: "Mozilla us-east-1"
+                route:
+                  cluster: dashboard-us-east-1
+                  timeout: 300s
+                  max_stream_duration:
+                    max_stream_duration: 0s
+                  retry_policy:
+                    retry_on: connect-failure,refused-stream,gateway-error,deadline-exceeded,unavailable
+                    num_retries: 2
+              - match:
+                  prefix: "/"
+                  query_parameters:
+                    - name: AWSAccessKeyId
+                      present_match: true
+                  headers:
+                    - name: authorization
+                      present_match: false
+                direct_response:
+                  status: 403
+                  body:
+                    filename: "/config/403-signature.xml"
+              - match:
+                  prefix: "/"
+                  query_parameters:
+                    - name: X-Amz-Credential
+                      string_match:
+                        contains: us-east-1
+                  headers:
+                    - name: authorization
+                      present_match: false
+                route:
+                  cluster: s3-rgw-us-east-1
+                  timeout: 300s
+                  max_stream_duration:
+                    max_stream_duration: 0s
+                  retry_policy:
+                    retry_on: connect-failure,refused-stream,gateway-error,deadline-exceeded,unavailable
+                    num_retries: 2
+              - match:
+                  prefix: "/"
+                  headers:
+                    - name: authorization
+                      string_match:
+                        contains: us-east-1
+                route:
+                  cluster: s3-rgw-us-east-1
+                  timeout: 300s
+                  max_stream_duration:
+                    max_stream_duration: 0s
+                  retry_policy:
+                    retry_on: connect-failure,refused-stream,gateway-error,deadline-exceeded,unavailable
+                    num_retries: 2
+              - match:
+                  prefix: "/"
+                  headers:
+                    - name: authorization
+                      string_match:
+                        contains: us-west-1
+                route:
+                  cluster: s3-rgw-us-west-1
+                  timeout: 300s
+                  max_stream_duration:
+                    max_stream_duration: 0s
+                  retry_policy:
+                    retry_on: connect-failure,refused-stream,gateway-error,deadline-exceeded,unavailable
+                    num_retries: 2
+              - match:
+                  prefix: "/"
+                route:
+                  cluster: s3-rgw-us-east-1
+                  timeout: 300s
+                  max_stream_duration:
+                    max_stream_duration: 0s
+                  retry_policy:
+                    retry_on: connect-failure,refused-stream,gateway-error,deadline-exceeded,unavailable
+                    num_retries: 2
+              - match:
+                  prefix: "/"
+                  headers:
+                    - name: ":authority"
+                      string_match:
+                        exact: "s3.example.com"
+                    - name: "User-Agent"
+                      string_match:
+                        prefix: "Mozilla us-west-1"
+                route:
+                  cluster: dashboard-us-west-1
+                  timeout: 300s
+                  max_stream_duration:
+                    max_stream_duration: 0s
+                  retry_policy:
+                    retry_on: connect-failure,refused-stream,gateway-error,deadline-exceeded,unavailable
+                    num_retries: 2
+              - match:
+                  prefix: "/"
+                  query_parameters:
+                    - name: AWSAccessKeyId
+                      present_match: true
+                  headers:
+                    - name: authorization
+                      present_match: false
+                direct_response:
+                  status: 403
+                  body:
+                    filename: "/config/403-signature.xml"
+              - match:
+                  prefix: "/"
+                  query_parameters:
+                    - name: X-Amz-Credential
+                      string_match:
+                        contains: us-west-1
+                  headers:
+                    - name: authorization
+                      present_match: false
+                route:
+                  cluster: s3-rgw-us-west-1
+                  timeout: 300s
+                  max_stream_duration:
+                    max_stream_duration: 0s
+                  retry_policy:
+                    retry_on: connect-failure,refused-stream,gateway-error,deadline-exceeded,unavailable
+                    num_retries: 2
+              - match:
+                  prefix: "/"
+                  headers:
+                    - name: authorization
+                      string_match:
+                        contains: us-west-1
+                route:
+                  cluster: s3-rgw-us-west-1
+                  timeout: 300s
+                  max_stream_duration:
+                    max_stream_duration: 0s
+                  retry_policy:
+                    retry_on: connect-failure,refused-stream,gateway-error,deadline-exceeded,unavailable
+                    num_retries: 2
+              - match:
+                  prefix: "/"
+                  headers:
+                    - name: authorization
+                      string_match:
+                        contains: us-east-1
+                route:
+                  cluster: s3-rgw-us-east-1
+                  timeout: 300s
+                  max_stream_duration:
+                    max_stream_duration: 0s
+                  retry_policy:
+                    retry_on: connect-failure,refused-stream,gateway-error,deadline-exceeded,unavailable
+                    num_retries: 2
+              - match:
+                  prefix: "/"
+                route:
+                  cluster: s3-rgw-us-west-1
+                  timeout: 300s
+                  max_stream_duration:
+                    max_stream_duration: 0s
+                  retry_policy:
+                    retry_on: connect-failure,refused-stream,gateway-error,deadline-exceeded,unavailable
+                    num_retries: 2
+            - name: s3-rgw-us-east-1
+              domains:
+              - "s3-east.example.com:443"
+              - "s3-east.example.com"
+              routes:
+              - match:
+                  prefix: "/"
+                  query_parameters:
+                    - name: X-Amz-Credential
+                      string_match:
+                        contains: us-west-1
+                  headers:
+                    - name: authority
+                      string_match:
+                        contains: s3-east.example.com
+                    - name: authorization
+                      present_match: false
+                direct_response:
+                  status: 308
+                  body:
+                    filename: "/config/308-us-west-1.xml"
+                response_headers_to_add:
+                - header:
+                    key: location
+                    value: "https://s3-west.example.com%REQ(:path)%"
+                  append_action: OVERWRITE_IF_EXISTS_OR_ADD
+              - match:
+                  prefix: "/"
+                route:
+                  cluster: s3-rgw-us-east-1
+                  timeout: 300s
+                  max_stream_duration:
+                    max_stream_duration: 0s
+                  retry_policy:
+                    retry_on: connect-failure,refused-stream,gateway-error,deadline-exceeded,unavailable
+                    num_retries: 2
+            - name: s3-rgw-us-west-1
+              domains:
+              - "s3-west.example.com:443"
+              - "s3-west.example.com"
+              routes:
+              - match:
+                  prefix: "/"
+                  query_parameters:
+                    - name: X-Amz-Credential
+                      string_match:
+                        contains: us-east-1
+                  headers:
+                    - name: authority
+                      string_match:
+                        contains: s3-west.example.com
+                    - name: authorization
+                      present_match: false
+                direct_response:
+                  status: 308
+                  body:
+                    filename: "/config/308-us-east-1.xml"
+                response_headers_to_add:
+                - header:
+                    key: location
+                    value: "https://s3-west.example.com%REQ(:path)%"
+                  append_action: OVERWRITE_IF_EXISTS_OR_ADD
+              - match:
+                  prefix: "/"
+                route:
+                  cluster: s3-rgw-us-west-1
+                  timeout: 300s
+                  max_stream_duration:
+                    max_stream_duration: 0s
+                  retry_policy:
+                    retry_on: connect-failure,refused-stream,gateway-error,deadline-exceeded,unavailable
+                    num_retries: 2
+          http_filters:
+          - name: envoy.filters.http.ext_authz
+            typed_config:
+              "@type": type.googleapis.com/envoy.extensions.filters.http.ext_authz.v3.ExtAuthz
+              grpc_service:
+                envoy_grpc:
+                  cluster_name: metrics-opa
+                timeout: 5s
+              transport_api_version: "V3"
+              failure_mode_allow: true
+              status_on_error:
+                code: 200
+          - name: envoy.filters.http.router
+            typed_config:
+              "@type": type.googleapis.com/envoy.extensions.filters.http.router.v3.Router
+      transport_socket:
+        name: envoy.transport_sockets.tls
+        typed_config:
+          "@type": type.googleapis.com/envoy.extensions.transport_sockets.tls.v3.DownstreamTlsContext
+          common_tls_context:
+            tls_certificates:
+              - certificate_chain: { filename: "/certs/tls.crt" }
+                private_key: { filename: "/certs/tls.key" }
+  clusters:
+  - name: dashboard-us-east-1
+    connect_timeout: 5s
+    upstream_connection_options:
+      tcp_keepalive:
+        keepalive_time: 100
+    circuit_breakers:
+      thresholds:
+        - max_connections: 10000
+          max_pending_requests: 10000
+          max_requests: 10000
+          max_retries: 5
+    type: STRICT_DNS
+    lb_policy: ROUND_ROBIN
+    outlier_detection:
+      consecutive_5xx: 3
+      interval: 30s
+      max_ejection_percent: 50
+      success_rate_minimum_hosts: 1
+      consecutive_gateway_failure: 3
+      failure_percentage_threshold: 50
+      failure_percentage_minimum_hosts: 1
+      max_ejection_time: 60s
+    load_assignment:
+      cluster_name: dashboard-us-east-1
+      endpoints:
+      - lb_endpoints:
+        - endpoint:
+            address:
+              socket_address:
+                address: 192.168.193.150
+                port_value: 8443
+          load_balancing_weight: 1
+    transport_socket:
+      name: envoy.transport_sockets.tls
+      typed_config:
+        "@type": type.googleapis.com/envoy.extensions.transport_sockets.tls.v3.UpstreamTlsContext
+        common_tls_context:
+          tls_params:
+            tls_maximum_protocol_version: TLSv1_3
+            tls_minimum_protocol_version: TLSv1_1
+  - name: s3-rgw-us-east-1
+    connect_timeout: 5s
+    upstream_connection_options:
+      tcp_keepalive:
+        keepalive_time: 100
+    circuit_breakers:
+      thresholds:
+        - max_connections: 10000
+          max_pending_requests: 10000
+          max_requests: 10000
+          max_retries: 5
+    type: STRICT_DNS
+    lb_policy: ROUND_ROBIN
+    outlier_detection:
+      consecutive_5xx: 3
+      interval: 30s
+      max_ejection_percent: 50
+      success_rate_minimum_hosts: 1
+      consecutive_gateway_failure: 3
+      failure_percentage_threshold: 50
+      failure_percentage_minimum_hosts: 1
+      max_ejection_time: 60s
+    load_assignment:
+      cluster_name: s3-rgw-us-east-1
+      endpoints:
+      - lb_endpoints:
+        - endpoint:
+            address:
+              socket_address:
+                address: 192.168.193.150
+                port_value: 80
+          load_balancing_weight: 1
+        - endpoint:
+            address:
+              socket_address:
+                address: 192.168.193.150
+                port_value: 81
+          load_balancing_weight: 1
+  - name: dashboard-us-west-1
+    connect_timeout: 5s
+    upstream_connection_options:
+      tcp_keepalive:
+        keepalive_time: 100
+    circuit_breakers:
+      thresholds:
+        - max_connections: 10000
+          max_pending_requests: 10000
+          max_requests: 10000
+          max_retries: 5
+    type: STRICT_DNS
+    lb_policy: ROUND_ROBIN
+    outlier_detection:
+      consecutive_5xx: 3
+      interval: 30s
+      max_ejection_percent: 50
+      success_rate_minimum_hosts: 1
+      consecutive_gateway_failure: 3
+      failure_percentage_threshold: 50
+      failure_percentage_minimum_hosts: 1
+      max_ejection_time: 60s
+    load_assignment:
+      cluster_name: dashboard-us-west-1
+      endpoints:
+      - lb_endpoints:
+        - endpoint:
+            address:
+              socket_address:
+                address: 192.168.193.151
+                port_value: 8443
+          load_balancing_weight: 1
+    transport_socket:
+      name: envoy.transport_sockets.tls
+      typed_config:
+        "@type": type.googleapis.com/envoy.extensions.transport_sockets.tls.v3.UpstreamTlsContext
+        common_tls_context:
+          tls_params:
+            tls_maximum_protocol_version: TLSv1_3
+            tls_minimum_protocol_version: TLSv1_1
+  - name: s3-rgw-us-west-1
+    connect_timeout: 5s
+    upstream_connection_options:
+      tcp_keepalive:
+        keepalive_time: 100
+    circuit_breakers:
+      thresholds:
+        - max_connections: 10000
+          max_pending_requests: 10000
+          max_requests: 10000
+          max_retries: 5
+    type: STRICT_DNS
+    lb_policy: ROUND_ROBIN
+    outlier_detection:
+      consecutive_5xx: 3
+      interval: 30s
+      max_ejection_percent: 50
+      success_rate_minimum_hosts: 1
+      consecutive_gateway_failure: 3
+      failure_percentage_threshold: 50
+      failure_percentage_minimum_hosts: 1
+      max_ejection_time: 60s
+    load_assignment:
+      cluster_name: s3-rgw-us-west-1
+      endpoints:
+      - lb_endpoints:
+        - endpoint:
+            address:
+              socket_address:
+                address: 192.168.193.151
+                port_value: 80
+          load_balancing_weight: 1
+        - endpoint:
+            address:
+              socket_address:
+                address: 192.168.193.151
+                port_value: 81
+          load_balancing_weight: 1
+  - name: metrics-opa
+    connect_timeout: 5s
+    type: static
+    typed_extension_protocol_options:
+      envoy.extensions.upstreams.http.v3.HttpProtocolOptions:
+        "@type": type.googleapis.com/envoy.extensions.upstreams.http.v3.HttpProtocolOptions
+        explicit_http_config:
+          http2_protocol_options: {}
+    upstream_connection_options:
+      tcp_keepalive:
+        keepalive_time: 100
+    circuit_breakers:
+      thresholds:
+        - max_connections: 10000
+          max_pending_requests: 10000
+          max_requests: 10000
+          max_retries: 5
+    type: STRICT_DNS
+    lb_policy: ROUND_ROBIN
+    outlier_detection:
+      consecutive_5xx: 3
+      interval: 30s
+      max_ejection_percent: 50
+      success_rate_minimum_hosts: 1
+      consecutive_gateway_failure: 3
+      failure_percentage_threshold: 50
+      failure_percentage_minimum_hosts: 1
+      max_ejection_time: 60s
+    load_assignment:
+      cluster_name: metrics-opa
+      endpoints:
+      - lb_endpoints:
+        - endpoint:
+            address:
+              socket_address:
+                address: 192.168.192.14
+                port_value: 9191
+          load_balancing_weight: 1

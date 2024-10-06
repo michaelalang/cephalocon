@@ -1,0 +1,67 @@
+              - match:
+                  prefix: "/"
+                  query_parameters:
+                    - name: AWSAccessKeyId
+                      present_match: true
+                  headers:
+                    - name: authorization
+                      present_match: false
+                direct_response:
+                  status: 403
+                  body:
+                    filename: "/config/403-signature.xml"
+              - match:
+                  prefix: "/"
+                  query_parameters:
+                    - name: X-Amz-Credential
+                      string_match:
+                        contains: ${region1}
+                  headers:
+                    - name: authorization
+                      present_match: false
+                route:
+                  cluster: s3-rgw-${region1}
+                  timeout: 300s
+                  max_stream_duration:
+                    max_stream_duration: 0s
+                  retry_policy:
+                    retry_on: connect-failure,refused-stream,gateway-error,deadline-exceeded,unavailable
+                    num_retries: 2
+              - match:
+                  prefix: "/"
+                  headers:
+                    - name: authorization
+                      string_match:
+                        contains: ${region1}
+                route:
+                  cluster: s3-rgw-${region1}
+                  timeout: 300s
+                  max_stream_duration:
+                    max_stream_duration: 0s
+                  retry_policy:
+                    retry_on: connect-failure,refused-stream,gateway-error,deadline-exceeded,unavailable
+                    num_retries: 2
+              - match:
+                  prefix: "/"
+                  headers:
+                    - name: authorization
+                      string_match:
+                        contains: ${region2}
+                route:
+                  cluster: s3-rgw-${region2}
+                  timeout: 300s
+                  max_stream_duration:
+                    max_stream_duration: 0s
+                  retry_policy:
+                    retry_on: connect-failure,refused-stream,gateway-error,deadline-exceeded,unavailable
+                    num_retries: 2
+              - match:
+                  prefix: "/"
+                route:
+                  cluster: s3-rgw-${region1}
+                  timeout: 300s
+                  max_stream_duration:
+                    max_stream_duration: 0s
+                  retry_policy:
+                    retry_on: connect-failure,refused-stream,gateway-error,deadline-exceeded,unavailable
+                    num_retries: 2

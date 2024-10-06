@@ -1,0 +1,45 @@
+service_type: host
+addr: ${CEPHIP}
+hostname: ${RGWHOST}
+labels:
+- mon
+- mgr
+- osd
+- rgw
+---
+service_type: mon
+placement:
+  label: mon
+---
+service_type: mgr
+placement:
+  label: mgr
+  count: 2
+---
+service_type: rgw
+service_id: default.${RGWZONE}
+placement:
+  label: rgw
+spec:
+  rgw_frontend_port: ${RGWPORT}
+  rgw_realm: ${RGWREGION}
+  rgw_zone: ${RGWZONE}
+---
+service_type: rgw
+service_id: default.${RGWZONE2}
+placement:
+  label: rgw
+spec:
+  rgw_frontend_port: ${RGWPORT2}
+  rgw_realm: ${RGWREGION}
+  rgw_zone: ${RGWZONE}
+---
+service_type: osd
+service_id: default_osd_group
+placement:
+  hosts:
+    - ${RGWHOST}
+data_devices:
+  paths:
+    - /dev/vdc
+    - /dev/vdd

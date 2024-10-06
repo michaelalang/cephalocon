@@ -1,0 +1,24 @@
+alerting:
+  alertmanagers:
+    - static_configs:
+        - targets:
+
+rule_files:
+
+scrape_configs:
+  - job_name: "prometheus"
+    static_configs:
+      - targets: ["localhost:9090"]
+  - job_name: "envoy"
+    scheme: http
+    metrics_path: /stats/prometheus
+    static_configs:
+    - targets:
+        - "ceph1.example.com:15000"
+        - "ceph2.example.com:15000"
+  - job_name: "rgw"
+    scheme: http
+    metrics_path: /metrics
+    static_configs:
+    - targets:
+        - "wkst.example.com:8080"

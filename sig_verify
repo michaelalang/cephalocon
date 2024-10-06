@@ -1,0 +1,40 @@
+#!/usr/bin/python3.13t
+
+import os
+import sys
+import boto3
+from botocore.config import Config
+import requests
+
+sig = None
+
+for sig in ("v2", "v4"):
+    if sig == "v2":
+        bsig = None
+    else:
+        bsig = sig
+    client = boto3.client(
+        "s3",
+        verify=os.environ.get("AWS_CA_BUNDLE", None),
+        aws_access_key_id=os.environ.get("AWS_ACCESS_KEY_ID"),
+        aws_secret_access_key=os.environ.get("AWS_SECRET_ACCESS_KEY"),
+        endpoint_url=os.environ.get("AWS_ENDPOINT_URL"),
+        config=Config(
+            region_name=os.environ.get("AWS_REGION", "us-east-1"),
+            retries={"max_attempts": 1},
+            signature_version=bsig,
+        ),
+    )
+    try:
+        key = sys.argv[1]
+    except IndexError:
+        key = "test"
+    try:
+        presigned = client.generate_presigned_url(
+            "get_object",
+            Params={"Bucket": os.environ.get("BUCKET"), "Key": key},
+            ExpiresIn=600,
+        )
+        print(f"[{sig}]: curl -s --cacert certs/tls.crt '{presigned}'")
+    except Exception as sigerr:
+        print(f"[{sig}]: not support on {os.environ.get('AWS_ENDPOINT_URL')} {sigerr}")

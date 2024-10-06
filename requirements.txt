@@ -1,0 +1,7 @@
+grpcio-tools
+envoy-distribution-release
+xds-protos
+prometheus_client>=0.20.0
+Flask
+gunicorn
+redis

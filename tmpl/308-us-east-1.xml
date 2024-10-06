@@ -1,0 +1,3 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Error><Code>PermanentRedirect</Code><Message>The bucket you are attempting to access must be addressed using the specified endpoint. Please send all future requests to this endpoint.</Message><Endpoint>s3-east.example.com</Endpoint><HostId>s3-west.example.com</HostId></Error>
+

@@ -1,0 +1,10 @@
+#!/bin/bash
+
+podman rm -f redis
+podman run \
+  --name redis \
+  -v $(pwd)/redis.conf:/etc/redis/redis.conf \
+  -d --rm \
+  -p 6379:6379 \
+  docker.io/library/redis /etc/redis/redis.conf
+

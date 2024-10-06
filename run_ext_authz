@@ -1,0 +1,18 @@
+#!/bin/bash
+
+podman rm -f ceph-ext-authz
+podman run --rm -d  \
+       --network host \
+       --name "ceph-ext-authz" \
+       -v ./policy.py:/opt/app-root/policy.py \
+       -v ./payment.py:/opt/app-root/payment.py \
+       -v ./rates.py:/opt/app-root/rates.py \
+       -e WEB_CONCURRENCY=1 \
+       -e REDIS=wkst.example.com \
+       -e THREADS=50 \
+       -e PROM_REFRESH=60 \
+       -e PROMQLAPI=http://wkst.example.com:9090/api/v1 \
+       -e PORT=8080 \
+       -e GRPCPORT=9191 \
+       -e REGION_REDIRECT=1 \
+       ceph-ext-authz:1.1.1

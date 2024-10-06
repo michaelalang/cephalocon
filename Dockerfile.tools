@@ -1,0 +1,14 @@
+FROM quay.io/fedora/fedora
+
+RUN dnf install -y python3.13-freethreading python3.13-devel && \
+    python3.13t -m ensurepip --default-pip && \
+    python3.13t -m pip install --upgrade pip && \
+    pip3.13 install boto3 faker requests
+
+COPY stress.py /usr/bin/stress
+COPY sig_verify /usr/bin/sig_verify
+COPY peaker.py /usr/bin/peaker
+
+USER 1001
+ENTRYPOINT [ "/bin/bash", "-c" ]
+CMD [ "/bin/sleep", "86400" ] 

@@ -1,0 +1,15 @@
+          http_filters:
+          - name: envoy.filters.http.ext_authz
+            typed_config:
+              "@type": type.googleapis.com/envoy.extensions.filters.http.ext_authz.v3.ExtAuthz
+              grpc_service:
+                envoy_grpc:
+                  cluster_name: metrics-opa
+                timeout: 5s
+              transport_api_version: "V3"
+              failure_mode_allow: true
+              status_on_error:
+                code: 200
+          - name: envoy.filters.http.router
+            typed_config:
+              "@type": type.googleapis.com/envoy.extensions.filters.http.router.v3.Router

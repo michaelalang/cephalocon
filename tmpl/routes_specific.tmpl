@@ -1,0 +1,28 @@
+              - match:
+                  prefix: "/"
+                  query_parameters:
+                    - name: X-Amz-Credential
+                      string_match:
+                        contains: ${region2}
+                  headers:
+                    - name: authorization
+                      present_match: false
+                direct_response:
+                  status: 308
+                  body:
+                    filename: "/config/308-${region2}.xml"
+                response_headers_to_add:
+                - header:
+                    key: location
+                    value: "https://${rewrite}%REQ(:path)%"
+                  append_action: OVERWRITE_IF_EXISTS_OR_ADD
+              - match:
+                  prefix: "/"
+                route:
+                  cluster: s3-rgw-${region}
+                  timeout: 300s
+                  max_stream_duration:
+                    max_stream_duration: 0s
+                  retry_policy:
+                    retry_on: connect-failure,refused-stream,gateway-error,deadline-exceeded,unavailable
+                    num_retries: 2

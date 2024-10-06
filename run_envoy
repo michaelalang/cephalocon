@@ -1,0 +1,11 @@
+#!/bin/bash
+
+podman rm -f envoy
+podman run --rm -d --entrypoint /usr/local/bin/envoy \
+       -v $(pwd)/config:/config \
+       -v $(pwd)/certs:/certs \
+       --network host \
+       --name "envoy" \
+       docker.io/envoyproxy/envoy:v1.30-latest \
+       -c /config/envoy-config.yaml \
+       --component-log-level router:debug,http:debug

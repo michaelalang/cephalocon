@@ -1,0 +1,23 @@
+#!/bin/bash -x 
+
+export AWS_EC2_METADATA_DISABLED=true
+export AWS_CA_BUNDLE=ca.crt
+for endpoint in http://ceph1.example.com http://ceph2.example.com ; do
+    for u in $(seq 1 50) ; do 
+        AWS_ACCESS_KEY_ID=user${u} \
+        AWS_SECRET_ACCESS_KEY=user${u} \
+	AWS_ENDPOINT_URL=${endpoint} \
+        /usr/local/bin/aws s3api create-bucket --bucket=user${u}
+    done
+done
+u='-east'
+AWS_ACCESS_KEY_ID=user${u} \
+        AWS_SECRET_ACCESS_KEY=user${u} \
+        AWS_ENDPOINT_URL=http://ceph1.example.com \
+        /usr/local/bin/aws s3api create-bucket --bucket=user${u}
+
+u='-west'
+AWS_ACCESS_KEY_ID=user${u} \
+        AWS_SECRET_ACCESS_KEY=user${u} \
+        AWS_ENDPOINT_URL=http://ceph2.example.com \
+        /usr/local/bin/aws s3api create-bucket --bucket=user${u}

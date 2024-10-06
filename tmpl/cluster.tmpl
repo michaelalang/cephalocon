@@ -1,0 +1,26 @@
+  - name: ${name}
+    connect_timeout: 5s
+    upstream_connection_options:
+      tcp_keepalive:
+        keepalive_time: 100
+    circuit_breakers:
+      thresholds:
+        - max_connections: 50
+          max_pending_requests: 50
+          max_requests: 500
+          max_retries: 5
+    type: STRICT_DNS
+    lb_policy: ROUND_ROBIN
+    outlier_detection:
+      consecutive_5xx: 3
+      interval: 30s
+      max_ejection_percent: 50
+      success_rate_minimum_hosts: 1
+      consecutive_gateway_failure: 3
+      failure_percentage_threshold: 50
+      failure_percentage_minimum_hosts: 1
+      max_ejection_time: 60s
+    load_assignment:
+      cluster_name: ${name}
+      endpoints:
+      - lb_endpoints:

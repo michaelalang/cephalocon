@@ -1,0 +1,11 @@
+#!/bin/bash
+
+podman rm -f stresser
+podman run -d \
+  --name stresser \
+  --rm \
+  -v $(pwd)/certs:/certs \
+  --env-file aws_c.env \
+  -e THREADS=50 \
+  localhost/cephalocon-tools:latest stress
+
