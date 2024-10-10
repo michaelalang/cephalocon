@@ -71,6 +71,9 @@ To highlty the endpoint more clearly we are going to use bash color codes for ea
 echo "echo -e '\e[0;31m'" > .east
 echo "echo -e '\e[0;32m'" > .west
 echo "echo -e '\e[1;37m'" > .tr
+
+echo "echo -e '\e[0;31m'" > .fail
+echo "echo -e '\e[0;32m'" > .succeed
 ```
 
 We should be able to connect to our RGW Clusters individually 
@@ -90,12 +93,6 @@ our multiple RGW clusters.
 
 ```
 # on system wkst execute
-# cluster 1
-. .east ; AWS_REGION=us-east-1 aws s3 ls ; . .tr
-
-# cluster 2
-. .west ; AWS_REGION=us-west-1 aws s3 ls ; . .tr
-
 # Checking with a User existing only in one region
 export AWS_ACCESS_KEY_ID=user-east
 export AWS_SECRET_ACCESS_KEY=user-east
@@ -145,23 +142,23 @@ for x in $(seq 1 4) ; do
 done 
 . .tr
 
-# output
-#2024-06-09 08:37:04 user1
-#2024-06-09 08:37:04 user1
-#2024-06-09 08:37:04 user1
-#An error occurred (429) when calling the ListBuckets operation: Too Many Requests
-
-# the fourth call is expected to return Error 429 
-# if we now switch the Region we should still receive 429 errors
-
 . .west
 for x in $(seq 1 4) ; do 
     echo "$(date) $(AWS_REGION=us-west-1 aws s3 ls 2>&1)"
 done 
 . .tr
+```
 
-# output
-#An error occurred (429) when calling the ListBuckets operation: Too Many Requests
+Expected Output
+```
+2024-06-09 08:37:04 user1
+2024-06-09 08:37:04 user1
+2024-06-09 08:37:04 user1
+An error occurred (429) when calling the ListBuckets operation: Too Many Requests
+
+An error occurred (429) when calling the ListBuckets operation: Too Many Requests
+An error occurred (429) when calling the ListBuckets operation: Too Many Requests
+An error occurred (429) when calling the ListBuckets operation: Too Many Requests
 ```
 
 Now it's time to get creative! Let's configure some advanced rate limiting scenarios:
@@ -218,12 +215,12 @@ Copy & paste the curl commands one after the other to see that we successfully b
 ```
 # on system wkst execute
 # blocking signature_version s3v2
-curl -s --cacert certs/tls.crt 'https://s3.example.com/user1/test?AWSAccessKeyId=user1&Signature=2GkWsG4QIqoYvqkoknj%2FSWdtmX0%3D&Expires=1727546647'
+. .fail ; curl -s --cacert certs/tls.crt 'https://s3.example.com/user1/test?AWSAccessKeyId=user1&Signature=2GkWsG4QIqoYvqkoknj%2FSWdtmX0%3D&Expires=1727546647' ; . .tr
 <?xml version="1.0" encoding="UTF-8"?>
 <Error><Code>AccessDenied</Code><Message>Access Denied signature v2 has been disabled</Message><HostId>s3.example.com</HostId></Error>
 
 # granting signature_version s3v4
-curl -s --cacert certs/tls.crt 'https://s3.example.com/user1/test?X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Credential=user1%2F20240928%2Fus-east-1%2Fs3%2Faws4_request&X-Amz-Date=20240928T175407Z&X-Amz-Expires=600&X-Amz-SignedHeaders=host&X-Amz-Signature=729d615efeed4d9d6e70247f57c3a36febd569cd787c4c1d9e72ef5ca7154ae2'
+. .succeed ; curl -s --cacert certs/tls.crt 'https://s3.example.com/user1/test?X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Credential=user1%2F20240928%2Fus-east-1%2Fs3%2Faws4_request&X-Amz-Date=20240928T175407Z&X-Amz-Expires=600&X-Amz-SignedHeaders=host&X-Amz-Signature=729d615efeed4d9d6e70247f57c3a36febd569cd787c4c1d9e72ef5ca7154ae2' ; . .tr
 CentOS Stream release 9
 ```
 
@@ -244,7 +241,7 @@ podman run  \
   localhost/cephalocon-tools:latest -- sig_verify test
 
 # We can skip s3v2 and use only the generated s3v4 presigned url
-curl --cacert certs/tls.crt 'https://s3-west.example.com/user1//test?X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Credential=user1%2F20240928%2Fus-east-1%2Fs3%2Faws4_request&X-Amz-Date=20240928T175911Z&X-Amz-Expires=600&X-Amz-SignedHeaders=host&X-Amz-Signature=d75f878e8fea12ff474057b2f173850b0f2f18d976b37ebc38cc88a054dd7ef3'
+. .fail ; curl --cacert certs/tls.crt 'https://s3-west.example.com/user1//test?X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Credential=user1%2F20240928%2Fus-east-1%2Fs3%2Faws4_request&X-Amz-Date=20240928T175911Z&X-Amz-Expires=600&X-Amz-SignedHeaders=host&X-Amz-Signature=d75f878e8fea12ff474057b2f173850b0f2f18d976b37ebc38cc88a054dd7ef3' ; . .tr
 
 <?xml version="1.0" encoding="UTF-8"?>
 <Error><Code>PermanentRedirect</Code><Message>The bucket you are attempting to access must be addressed using the specified endpoint. Please send all future requests to this endpoint.</Message><Endpoint>s3-east.example.com</Endpoint><HostId>s3-west.example.com</HostId></Error>
@@ -265,11 +262,11 @@ sed -i -e ' s#disable_policy_check_timebase#policy_check_timebase#; ' policy.py
 The policy rejects requests every three minutes 
 ```
 # on system wkst execute
-echo "$(date) $(AWS_REGION=us-east-1 aws s3 ls s3://user1/test 2>&1)"
+. .succeed ; echo "$(date) $(AWS_REGION=us-east-1 aws s3 ls s3://user1/test 2>&1)" ; . .tr
 Sat Sep 28 02:07:21 PM EDT 2024 2024-09-28 13:53:25         24 test
 
 # wait for 02:09:..
-echo "$(date) $(AWS_REGION=us-east-1 aws s3 ls s3://user1/test 2>&1)"
+. .fail ; echo "$(date) $(AWS_REGION=us-east-1 aws s3 ls s3://user1/test 2>&1)" ; . .tr
 
 Sat Sep 28 02:09:01 PM EDT 2024 
 An error occurred (PreconditionFailed) when calling the ListObjectsV2 operation (reached max retries: 0): The bucket s not accessible due to time restrictions.
@@ -297,8 +294,8 @@ available cluster.
 export AWS_ACCESS_KEY_ID=user1
 export AWS_SECRET_ACCESS_KEY=user1
 
-echo 'I am user1 zone us-east-1' | AWS_REGION=us-east-1 /usr/local/bin/aws s3 cp - s3://user1/content
-echo 'I am user1 zone us-west-1' | AWS_REGION=us-west-1 /usr/local/bin/aws s3 cp - s3://user1/content 
+. .succeed ; echo 'I am user1 zone us-east-1' | AWS_REGION=us-east-1 /usr/local/bin/aws s3 cp - s3://user1/content ; . .tr
+. .succeed ; echo 'I am user1 zone us-west-1' | AWS_REGION=us-west-1 /usr/local/bin/aws s3 cp - s3://user1/content ; . .tr
 ```
 
 ```
@@ -312,24 +309,35 @@ export AWS_ACCESS_KEY_ID=user1
 export AWS_SECRET_ACCESS_KEY=user1
 
 . .east ; AWS_REGION=us-east-1 aws s3 cp s3://user1/content - ; . .tr
+```
 
-# output
+Expected Output:
+```
 #09:50:35.771401 eth0  Out IP 192.168.192.211.35954 > 192.168.192.129.443: Flags [S], seq 432983531, win 32120, options [mss 1460,sackOK,TS val 1200448334 ecr 0,nop,wscale 7], length 0
 #09:50:35.772723 eth0  In  IP 192.168.192.129.443 > 192.168.192.211.35954: Flags [S.], seq 3019979653, ack 432983532, win 31856, options [mss 1460,sackOK,TS val 493905351 ecr 1200448334,nop,wscale 7], length 0
-#I am user1 zone us-east-1
+I am user1 zone us-east-1
+```
 
-# Stop one ingress Envoy by executing 
+Stop one ingress Envoy by executing 
+```
 podman rm -f envoy 
+```
 
-# reexecute the command 
+Reexecute the command 
+```
 . .east ; AWS_REGION=us-east-1 aws s3 cp s3://user1/content - ; . .tr
+```
+
+Expected Output:
+```
 09:51:41.702404 eth0  Out IP 192.168.192.211.40700 > 192.168.192.129.443: Flags [S], seq 647938130, win 32120, options [mss 1460,sackOK,TS val 1105568207 ecr 0,nop,wscale 7], length 0
 09:51:41.702666 eth0  Out IP 192.168.192.211.39810 > 192.168.192.99.443: Flags [S], seq 1013611424, win 32120, options [mss 1460,sackOK,TS val 2637918530 ecr 0,nop,wscale 7], length 0
 09:51:41.703014 eth0  In  IP 192.168.192.99.443 > 192.168.192.211.39810: Flags [S.], seq 4161283351, ack 1013611425, win 31856, options [mss 1460,sackOK,TS val 913863567 ecr 2637918530,nop,wscale 7], length 0
-#I am user1 zone us-east-1
+I am user1 zone us-east-1
+```
 
-
-# Restart the stopped envoy for the next steps
+Restart the stopped envoy for the next steps
+```
 ./run_envoy 
 ```
 
@@ -377,12 +385,14 @@ curl -ksg 'http://wkst.example.com:9090/api/v1/query?query=s3_request_total{}' |
     [.metric.region, .metric.bucket, .metric.user,
      .metric.method, .value[1]] |
     join(" ") '
+```
 
-# output
-#us-east-1 user1 user1 GET 6
-#us-east-1 user1 user1 PUT 2
-#us-west-1 user1 user1 PUT 2
-#us-east-1 user1 user1 HEAD 6
+Expected Output:
+```
+us-east-1 user1 user1 GET 6
+us-east-1 user1 user1 PUT 2
+us-west-1 user1 user1 PUT 2
+us-east-1 user1 user1 HEAD 6
 ```
 
 Similar to analyze the rate limited metrics 
@@ -395,10 +405,12 @@ curl -ksg 'http://wkst.example.com:9090/api/v1/query?query=s3_rate_limited_total
     [.metric.region, .metric.bucket, .metric.user,
      .metric.method, .value[1]] |
     join(" ") '
+```
 
-# output
-#us-east-1 * user1 GET 1
-#us-west-1 * user1 GET 4
+Expected Output:
+```
+us-east-1 * user1 GET 1
+us-west-1 * user1 GET 4
 ```
 
 ### Payment/finops use-case 
@@ -443,12 +455,14 @@ for x in $(seq 1 50); do
       source .tr
     done
 done 
+```
 
-# output
-#I am user1 zone us-west-1
-#I am user1 zone us-east-1
-#download failed: s3://user1/content to - An error occurred (402) when calling the GetObject operation (reached max retries: 0): Payment Required
-#download failed: s3://user1/content to - An error occurred (402) when calling the HeadObject operation (reached max retries: 0): Payment Required
+Expected Output:
+```
+I am user1 zone us-west-1
+I am user1 zone us-east-1
+download failed: s3://user1/content to - An error occurred (402) when calling the GetObject operation (reached max retries: 0): Payment Required
+download failed: s3://user1/content to - An error occurred (402) when calling the HeadObject operation (reached max retries: 0): Payment Required
 
 ```
 
