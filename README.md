@@ -107,6 +107,7 @@ access resources from other clusters. While this approach introduces some latenc
 client, it provides a convenient way to interact with multiple clusters without needing to manually determine which endpoint is best suited for each 
 request.
 
+![image](screenshots/global_rgw_access.gif)
 
 #### hostname-style Bucket resolution
 
@@ -170,6 +171,7 @@ Now it's time to get creative! Let's configure some advanced rate limiting scena
 5. **Time-of-day GET requests outside of business hours**: Enforce a separate limit for `GET` requests from all users outside of business hours (6pm 
 to 6am).
 
+![image](screenshots/global_rgw_ratelimiting.gif)
 
 ### Policy related topics 
 
@@ -247,7 +249,7 @@ podman run  \
 <Error><Code>PermanentRedirect</Code><Message>The bucket you are attempting to access must be addressed using the specified endpoint. Please send all future requests to this endpoint.</Message><Endpoint>s3-east.example.com</Endpoint><HostId>s3-west.example.com</HostId></Error>
 ```
 
-*ToDo Redirect header inject*
+![image](screenshots/global_rgw_policy.gif)
 
 Last but not least, let's assume we want a time based access policy to apply for our RGW instance.
 Let's enable the already included timebased example in the `policy.py` by executing:
