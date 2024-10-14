@@ -134,11 +134,15 @@ request.
 
 ![image](screenshots/global_rgw_access.gif)
 
-#### hostname-style Bucket resolution
+## Current Limitations of Hostname Bucket Resolution
 
-Currently, hostname bucket resolution requires manual configuration of used names and their assignment to corresponding clusters. This means that 
-regex-based routing is not feasible in this scenario, which can lead to limitations in managing and scaling your RGW deployments. I am actively 
-investigating ways to mitigate these limitations and provide a more flexible and scalable solution for hostname resolution.
+Currently, hostname bucket resolution in RGW deployments requires manual configuration of used names and their assignment to corresponding clusters. This approach has limitations, including:
+
+* **No support for regex-based routing**: Manual configuration makes it difficult to implement regex-based routing, which can lead to scalability issues.
+* **Limited flexibility**: The current approach can become cumbersome to manage, especially in large-scale deployments.
+Ongoing Investigation
+
+I am actively exploring ways to mitigate these limitations and provide a more flexible and scalable solution for hostname resolution. The goal is to enable more efficient and automated management of RGW deployments, and to improve overall scalability.
 
 ### Global Rate limiting spawning all included Zone/Regions/Authorities
 
@@ -200,9 +204,20 @@ to 6am).
 
 ### Policy related topics 
 
-Mimiking AWS behavior with Ceph, there is one topic that comes to everyone's mind ... Signature versions. Ceph still supports the AWS deprecated and removed Signature Version `s3v2`. We want our deployments to behave like AWS so we want to disable the Signature version `s3v2`. 
+When mimicking AWS behavior with Ceph, one crucial aspect to consider is signature versions. Currently, Ceph still supports the deprecated and removed Signature Version s3v2, which is no longer used by AWS.
 
-Unfortunately, `aws-cli` does not provide a parameter to generate Signatures for `s3v2`. Let's do that with a tool in the cephalocon-tools image we first need to build
+**Why Disable s3v2?**
+
+To ensure our Ceph deployments behave like AWS, we need to disable the `s3v2 signature version`. This is because AWS has deprecated and removed this version, and we want to maintain compatibility and consistency with AWS.
+
+**Objective**
+
+Our goal is to configure Ceph to disable the s3v2 signature version, ensuring that our deployments align with AWS behavior and best practices.
+
+Unfortunately, the `aws-cli` does not provide a parameter to generate signatures for `s3v2`. To overcome this limitation, we will use a tool from the `cephalocon-tools` image. However, before we can use the tool, we need to build the image.
+
+**Building the Image**
+
 
 ```
 # on system wkst execute
@@ -306,14 +321,21 @@ sed -i -e ' s#policy_check_timebase#disable_policy_check_timebase#; ' policy.py
 ./run_ext_authz
 ```
 
-### global load balanced S3 
+### Simulating Global Load Balancing with DNS RoundRobin
 
-With our Lab setup, we've implemented a DNS RoundRobin to simulate global load balancing. This allows us to emulate a globally distributed system, 
-where connections can be routed to the nearest available Ceph cluster for the region. As long as the Ceph cluster for the region is available, we're 
-able to connect and retrieve content from anywhere in the world.
+Our lab setup utilizes a DNS RoundRobin configuration to simulate global load balancing. This approach enables us to emulate a globally distributed system, where connections can be routed to the nearest available Ceph cluster for a specific region.
 
-This configuration enables us to provide a seamless user experience, regardless of their location, by automatically routing requests to the closest 
-available cluster.
+**Key Benefits**
+
+With this configuration, we can:
+
+* **Provide a seamless user experience**: Regardless of the user's location, requests are automatically routed to the closest available cluster, ensuring a consistent and reliable experience.
+* **Ensure global availability**: As long as the Ceph cluster for a region is available, users can connect and retrieve content from anywhere in the world.
+* **Improve performance**: By routing requests to the nearest cluster, we can reduce latency and improve overall system performance.
+
+#### Global Load Balancing in Action
+
+This configuration allows us to demonstrate a globally distributed system, where users can access content from anywhere in the world, without worrying about the underlying infrastructure. The DNS RoundRobin setup ensures that requests are always routed to the closest available cluster, providing a seamless and efficient user experience.
 
 ```
 # on system wkst execute
@@ -370,13 +392,17 @@ Restart the stopped envoy for the next steps
 
 ### global S3 specific metrics
 
-Now that we've collected a range of metrics with our Lab setup, let's open a browser and explore the Prometheus UI interface. This will allow us to 
-visualize and analyze the data we've collected, gaining valuable insights into the performance and behavior of our RGW clusters.
+**Accessing Metrics with the Prometheus UI**
 
-In the Prometheus UI, we can query the metrics we've collected and generate graphs, tables, or other visualizations to help us understand what's 
-happening in our system.
+In the Prometheus UI, we can query the metrics we have collected and generate graphs, tables, or other visualizations to help us understand what is happening in our system. This provides a visual representation of the data, making it easier to analyze and gain insights.
 
-Alternatively, you can access the metrics endpoint directly using a tool like `curl`
+**Alternative: Accessing Metrics with curl**
+
+Alternatively, you can access the metrics endpoint directly using a tool like `curl`. This allows you to retrieve the metrics data programmatically and analyze it using your preferred tools or scripts.
+
+**Example curl Command**
+
+Here's an example `curl` command to access the metrics endpoint:
 
 ```
 # on system wkst execute
@@ -440,19 +466,22 @@ us-east-1 * user1 GET 1
 us-west-1 * user1 GET 4
 ```
 
-### Payment/finops use-case 
+### Exploring Financial Operations and Payment Limitations 
 
-In addition to exploring the technical aspects of our Lab setup, we can also delve into financial operations and payment limitations. By using our 
-rate limiting capabilities, we can create custom pricing plans for our customers, ensuring that their usage aligns with their budget.
+In addition to exploring the technical aspects of our lab setup, we can also delve into financial operations and payment limitations. By leveraging our rate limiting capabilities, we can create custom pricing plans for our customers, ensuring that their usage aligns with their budget.
 
-For example, we could set a daily limit on the number of requests or data transferred, thereby controlling costs and preventing unexpected overages. 
-This would be particularly useful for businesses that require predictable expenses and budgeting.
+**Benefits of Custom Pricing Plans**
 
-To test the payment limitations, let's update the `payment.py` file by changing the `limit` value to 0.0001. This will simulate a payment limit that can 
-be reached relatively quickly.
+Custom pricing plans offer several benefits:
 
-By setting the `limit` to 0.0001, we'll be able to see how our system responds when a customer reaches their payment limit and needs to make a new payment 
-to continue using our services.
+* **Predictable expenses**: Businesses can budget and plan for their expenses, avoiding unexpected overages.
+* **Cost control**: We can set limits on the number of requests or data transferred, controlling costs and preventing unexpected expenses.
+* **Flexibility**: We can create tailored pricing plans to meet the specific needs of our customers.
+Simulating Payment Limitations
+
+To test the payment limitations, let's update the `payment.py` file by changing the `limit` value to `0.0001`. This will simulate a payment limit that can be reached relatively quickly.
+
+Here's how to update the payment.py file:
 
 
 ```
