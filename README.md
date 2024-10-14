@@ -1,55 +1,80 @@
 # Ceph global RGW Lab
 
-This lab is for the SFP `Maximizing the Value of Your Rados Gateway with Ingress Strategies` for Cephalocon December 4th 2024.
+This lab is dedicated to the SFP (Special Focus Project) titled 'Maximizing the Value of Your Rados Gateway with Ingress Strategies' for the Cephalocon event on December 4th, 2024. The purpose of this lab is to provide a hands-on experience in optimizing the performance and efficiency of the Rados Gateway by implementing various ingress strategies. Participants will gain a deeper understanding of the benefits and challenges associated with different ingress strategies and learn how to effectively utilize them to maximize the value of their Rados Gateway
 
-The use cases that have been accessed are:
+## Use Cases for Rados Gateway (RGW)
 
-* Global access to RGW, independent of zones or regions.
-* Rate limiting applied globally, encompassing all included zones, regions, and authorities.
-* S3 metrics embedded within the request (no log parsing) across zones, regions, and authorities.
-* Possible additional features to be utilized
+The following use cases have been identified for Rados Gateway:
+
+* **Global Access**: Provide global access to RGW, independent of zones or regions, enabling seamless access to data from anywhere.
+* **Global Rate Limiting**: Apply rate limiting globally, encompassing all included zones, regions, and authorities, to ensure consistent and controlled access to resources.
+* **S3 Metrics Integration**: Embed S3 metrics within the request, eliminating the need for log parsing, and providing real-time insights across zones, regions, and authorities.
+* **Future-Proofing**: Explore additional features that can be utilized to further enhance the capabilities of RGW and stay ahead of evolving requirements.
 
 # Requirements
 
-This lab will be live-demonstrated. If you wish to run it independently, the following requirements must be fulfilled:
+Lab Requirements for Independent Execution
 
-* 2 (Virtual) System CentOS 9 based 
-	* min 4 Cores, 16GB memory
-	* 3x 50GB Disks (1x system, 2x OSD) 
-* 1 (Virtual) System CentOS 9 based
-	* min 4 Cores, 8GB memory (depending on metrics storage duration)
-	* 1x 50 GB Disk
+This lab will be live-demonstrated, but if you'd like to run it independently, please ensure you meet the following system requirements:
+
+**System 1: Ceph Cluster Nodes (2x)**
+
+* Operating System: CentOS 9
+* CPU: Minimum 4 Cores
+* Memory: 16 GB
+* Storage:
+  * 1 x 50 GB Disk (System Disk)
+  * 2 x 50 GB Disks (OSD Disks)
+
+**System 2: Monitoring Node (1x)**
+
+* Operating System: CentOS 9
+* CPU: Minimum 4 Cores
+* Memory: 8 GB (dependent on metrics storage duration)
+* Storage:
+  * 1 x 50 GB Disk
 
 # Envoy 
-Envoy is an open source edge and service proxy, desgined for cloud-native applications. Most likely you have heard the name `envoy` in relation to Microservices and ServiceMesh.
+Envoy is an open-source edge and service proxy, specifically designed for cloud-native applications. You may have already heard of Envoy in the context of microservices and service mesh architectures, where it plays a crucial role in enabling scalable, secure, and observable communication between services.
 
-We will utilize Envoy for its easy scalability, routing, and filtering capabilities. Specifically, we will leverage the external authorization feature 
-to implement:
+**Utilizing Envoy for Scalability and Control**
 
-* Global rate limiting
-* Global S3-specific metrics
-* Global access with AWS_REGION-based routing decisions
+We will leverage Envoy's powerful features to enable easy scalability, routing, and filtering in our architecture. Specifically, we will utilize Envoy's external authorization feature to implement the following global controls:
 
-# Open policy agent 
-Policy-based control for cloud native environments. Flexible, fine-grained control for administrators across the stack.
+* **Global Rate Limiting**: Enforce rate limits across all services and regions to prevent abuse and ensure consistent performance.
+* **Global S3-Specific Metrics**: Collect and report S3-specific metrics across all regions, providing a unified view of storage usage and performance.
+* **Global Access with AWS_REGION-Based Routing**: Route requests based on AWS region, enabling global access to services while maintaining region-specific routing decisions.
 
-The Open Policy Framework will be called by Envoy to implement policies, such as Role-Based Access Control (RBAC), rate limiting, and metrics 
-collection through an API frontend to a Redis cluster.
+# Open Policy Framework for Cloud-Native Environments
 
-# Redis and Frontend
-A in-memory database for caching and streaming. 
+The Open Policy Framework provides policy-based control for cloud-native environments, offering flexible and fine-grained control for administrators across the entire stack.
 
-The Flask API will serve as a frontend for making rate limit decisions and collecting metrics.
+**Integration with Envoy**
 
-With Redis, we will have a centralized, fast storage solution for statistics used in rate limiting decisions. Although RGW does implement user and 
-bucket rate limits, these are tied to a single daemon and are not shared between multiple daemons within one Ceph cluster.
+Envoy will leverage the Open Policy Framework to implement policies, including:
 
-Since the Open Policy Agent lacks out-of-the-box Redis integration, we instead utilize an HTTP(S) API. Furthermore, moving the Flask frontend 
-functionality into OPA is crucial for reducing round-trip time (RTT).
+* **Role-Based Access Control (RBAC)**: Enforce access controls based on user roles and permissions.
+* **Rate Limiting**: Apply rate limits to prevent abuse and ensure consistent performance.
+* **Metrics Collection**: Collect and report metrics through an API frontend to a Redis cluster.
+
+For the purposes of this lab, and due to the current limitation of OPA not supporting Redis writes, we have replaced the OPA agent with a custom-coded gRPC protobuf daemon.
+
+# Redis: In-Memory Database for Caching and Streaming
+
+Redis serves as an in-memory database, providing a high-performance solution for caching and streaming data.
+
+# Flask API: Metrics Collection Frontend
+
+The Flask API acts as a frontend for collecting metrics, providing a simple and efficient way to gather data from various sources.
+
+# Centralized Rate Limiting with Redis
+
+With Redis, we can store statistics used in rate limiting decisions in a centralized, fast storage solution. This allows us to share rate limiting information between multiple daemons within a Ceph cluster, overcoming the limitation of RGW's built-in rate limiting, which is tied to a single daemon.
+
 
 ## Use cases
 
-**please ensure to follow the [Lab setup guide](#lab-setup-guide) prior continuing with this lab**.
+**Please ensure to follow the [Lab setup guide](#lab-setup-guide) carefully to set up your environment correctly. This will ensure that you can complete the lab exercises successfully and get the most out of the experience.**.
 
 ### Global RGW access independent of Zone/Regions
 
