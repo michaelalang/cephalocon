@@ -1,7 +1,7 @@
 import logging
 import sys
 from functools import wraps
-from time import time
+import time
 
 from prometheus_client import (
     CollectorRegistry,
@@ -27,9 +27,9 @@ multiprocess.MultiProcessCollector(registry)
 def observe_latency(func):
     @wraps(func)
     def metrics_wrapped(*args, **kwargs):
-        starttime = time()
+        starttime = time.time()
         rsp = func(*args, **kwargs)
-        stoptime = time()
+        stoptime = time.time()
         name = func.__name__
         data = parse_requests_data(args[0])
         S3_REQUEST_LATENCY.labels(
@@ -45,9 +45,9 @@ def observe_latency(func):
 def observe_redis_latency(func):
     @wraps(func)
     def metrics_wrapped(*args, **kwargs):
-        starttime = time()
+        starttime = time.time()
         rsp = func(*args, **kwargs)
-        stoptime = time()
+        stoptime = time.time()
         name = func.__name__
         REDIS_REQUEST_LATENCY.labels(name).observe(
             stoptime - starttime,

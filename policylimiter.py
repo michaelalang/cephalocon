@@ -28,12 +28,13 @@ def policylimit(jrq):
         )
     except Exception as err:
         logger.error(f"cannot parse OpenPolicyAgent request {err}")
-        return 500, None
+        return 500, None, []
 
     try:
         body = None
+        headers = []
         for check in filter(lambda x: x.startswith("policy_check_"), dir(policy)):
-            check, body = getattr(policy, check)(req)
+            check, body, headers = getattr(policy, check)(req)
             if not check == 200:
                 S3_POLICYLIMITED.labels(
                     req.get("user"),
@@ -43,10 +44,10 @@ def policylimit(jrq):
                     req.get("region"),
                     req.get("authority"),
                 ).inc()
-                return check, body
-        return check, body
+                return check, body, headers
+        return check, body, headers
 
     except Exception as err:
         logger.error(f"{err}")
-        return 500, None
-    return 200, None
+        return 500, None, []
+    return 200, None, []

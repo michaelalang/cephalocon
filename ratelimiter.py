@@ -369,7 +369,7 @@ def ratelimit(req):
         del req["length"]
     except Exception as err:
         logger.error(f"cannot parse OpenPolicyAgent request {err}")
-        return 500, None
+        return 500, None, []
 
     try:
         Rater = RateBucket(buckets=(1,), redis=get_redis())
@@ -385,14 +385,14 @@ def ratelimit(req):
                     req.get("region"),
                     req.get("authority"),
                 ).inc()
-                return 429, None
-        return 200, None
+                return 429, None, [("x-rate-limited", str(buckets))]
+        return 200, None, []
 
     except Exception as err:
         logger.error(f"ratelimit: {err}")
         logger.debug(f"ratelimit: {req}")
-        return 500, None
-    return 200, None
+        return 500, None, []
+    return 200, None, []
 
 
 @observe_latency
@@ -409,7 +409,7 @@ def paymentcheck(req):
         ).inc()
     except Exception as err:
         logger.error(f"cannot parse OpenPolicyAgent request {err}")
-        return 500, None
+        return 500, None, []
     try:
         # ensure user is not None
         if req.get("user") == None:
@@ -431,12 +431,12 @@ def paymentcheck(req):
                     req.get("region"),
                     req.get("authority"),
                 ).inc()
-                return 402, None
+                return 402, None, [("x-payment-required", str(buckets))]
 
-        return 200, None
+        return 200, None, []
 
     except Exception as err:
         logger.error(f"{err}")
         logger.debug(f"{req}")
-        return 500, None
-    return 200, None
+        return 500, None, []
+    return 200, None, []

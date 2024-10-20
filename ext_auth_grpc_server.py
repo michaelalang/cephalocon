@@ -15,6 +15,7 @@ import grpc
 import requests
 import urllib3.exceptions
 from envoy.type.v3 import http_status_pb2 as _http_status_pb2
+import envoy.config.core.v3.base_pb2 as _base_pb2
 from flask import Flask, Response, abort, jsonify, make_response, request
 from google.protobuf.json_format import MessageToJson
 from google.rpc import status_pb2 as _grpc_status_pb2
@@ -37,7 +38,18 @@ class AuthorizationServer(pb2_grpc.AuthorizationServicer):
     def __init__(self, *args, **kwargs):
         pass
 
-    def response(self, check=200, body="", jrq=None):
+    def __map_headers(self, headers):
+        headers.append(("X-Cephalocon", "Hello"))
+        return list(
+            map(
+                lambda h: _base_pb2.HeaderValueOption(
+                    header=_base_pb2.HeaderValue(key=str(h[0]), value=str(h[1]))
+                ),
+                headers,
+            )
+        )
+
+    def response(self, check=200, body="", headers=[], jrq=None):
         if check == 200:
             GRPC_REQUESTS_TOTAL.labels(check).inc()
             accept = pb2.OkHttpResponse()
@@ -51,7 +63,8 @@ class AuthorizationServer(pb2_grpc.AuthorizationServicer):
             reject = pb2.DeniedHttpResponse(
                 status=_http_status_pb2.HttpStatus(
                     code=_http_status_pb2.PaymentRequired
-                )
+                ),
+                headers=self.__map_headers(headers),
             )
             rsp = pb2.CheckResponse(
                 status=_grpc_status_pb2.Status(code=1), denied_response=reject
@@ -63,7 +76,8 @@ class AuthorizationServer(pb2_grpc.AuthorizationServicer):
             reject = pb2.DeniedHttpResponse(
                 status=_http_status_pb2.HttpStatus(
                     code=_http_status_pb2.PreconditionRequired
-                )
+                ),
+                headers=self.__map_headers(headers),
             )
             rsp = pb2.CheckResponse(
                 status=_grpc_status_pb2.Status(code=1), denied_response=reject
@@ -75,7 +89,8 @@ class AuthorizationServer(pb2_grpc.AuthorizationServicer):
             reject = pb2.DeniedHttpResponse(
                 status=_http_status_pb2.HttpStatus(
                     code=_http_status_pb2.TooManyRequests
-                )
+                ),
+                headers=self.__map_headers(headers),
             )
             rsp = pb2.CheckResponse(
                 status=_grpc_status_pb2.Status(code=1), denied_response=reject
@@ -88,6 +103,7 @@ class AuthorizationServer(pb2_grpc.AuthorizationServicer):
                 status=_http_status_pb2.HttpStatus(
                     code=_http_status_pb2.PermanentRedirect,
                 ),
+                headers=self.__map_headers(headers),
                 body=body,
             )
             rsp = pb2.CheckResponse(
@@ -102,6 +118,7 @@ class AuthorizationServer(pb2_grpc.AuthorizationServicer):
                 status=_http_status_pb2.HttpStatus(
                     code=_http_status_pb2.PreconditionFailed,
                 ),
+                headers=self.__map_headers(headers),
                 body=body,
             )
             rsp = pb2.CheckResponse(
@@ -115,7 +132,8 @@ class AuthorizationServer(pb2_grpc.AuthorizationServicer):
             reject = pb2.DeniedHttpResponse(
                 status=_http_status_pb2.HttpStatus(
                     code=_http_status_pb2.InternalServerError
-                )
+                ),
+                headers=self.__map_headers(headers),
             )
             rsp = pb2.CheckResponse(
                 status=_grpc_status_pb2.Status(code=1), denied_response=reject
@@ -134,11 +152,11 @@ class AuthorizationServer(pb2_grpc.AuthorizationServicer):
             checks.append(tpe.submit(ratelimiter.paymentcheck, jrq))
             futures.wait(checks)
 
-        for check, body in map(lambda x: x.result(), checks):
+        for check, body, headers in map(lambda x: x.result(), checks):
             if not check == 200:
-                return self.response(check, body, jrq)
+                return self.response(check, body, headers, jrq)
 
-        return self.response(200, "", jrq)
+        return self.response(200, "", [], jrq)
 
 
 def serve():

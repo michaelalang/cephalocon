@@ -34,7 +34,7 @@ endpoints = {
 
 def policy_check_region_redirect(req):
     if not bool(int(os.environ.get("REGION_REDIRECT", 0))):
-        return (200, "")
+        return (200, "", [])
     logger.debug(f"check redirect {req.get('authority')} {req.get('region')}")
     if all(
         [
@@ -50,6 +50,12 @@ def policy_check_region_redirect(req):
                 endpoints[req.get("authority")],
                 req.get("authority"),
             ),
+            [
+                (
+                    "Location",
+                    endpoints[req.get("authority")],
+                )
+            ],
         )
     elif all(
         [
@@ -65,6 +71,12 @@ def policy_check_region_redirect(req):
                 endpoints[req.get("authority")],
                 req.get("authority"),
             ),
+            [
+                (
+                    "Location",
+                    endpoints[req.get("authority")],
+                )
+            ],
         )
     return (200, "")
 
@@ -79,4 +91,4 @@ def disable_policy_check_timebase(req):
             req.get("authority"),
             req.get("authority"),
         )
-    return (200, "")
+    return (200, "", [])
