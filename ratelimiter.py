@@ -4,8 +4,6 @@ import sys
 from datetime import datetime, timedelta
 from concurrent import futures
 
-import redis
-
 import payment
 import rates
 from metrics import *
@@ -45,7 +43,7 @@ class Bucket(object):
     def __get_name__(
         self, region, user, bucket, source, method, authority, now=None, prefix=""
     ):
-        if now == None:
+        if now is None:
             now = datetime.now()
         return f"{prefix}" + str(
             uuid.uuid5(
@@ -71,6 +69,7 @@ class Bucket(object):
         try:
             return int(self.store.get(bname))
         except TypeError as rederr:
+            logger.debug(rederr)
             return 0
 
     def inc(
@@ -94,7 +93,7 @@ class Bucket(object):
                 try:
                     self.store.expire(bname, 1800)
                 except Exception as rederr:
-                    logger.error(f"cannot set expire on {bname} {rederr}")
+                    logger.error(f"cannot set expire on {bname} {rederr} {r}")
             except Exception as rederr:
                 logger.error(f"redis error on incr {rederr}")
 
@@ -117,7 +116,7 @@ class Bucket(object):
             region, user, bucket, source, method, authority, now, prefix
         )
         try:
-            r = self.store.setex(bname, 60 * 60 * 24, value)
+            self.store.setex(bname, 60 * 60 * 24, value)
         except Exception as rederr:
             logger.error(f"redis error on incr {rederr}")
 
@@ -412,7 +411,7 @@ def paymentcheck(req):
         return 500, None, []
     try:
         # ensure user is not None
-        if req.get("user") == None:
+        if req.get("user") is None:
             req["user"] = "anonymous"
     except Exception as sanerr:
         logger.error(

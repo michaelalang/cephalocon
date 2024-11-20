@@ -30,12 +30,16 @@ endpoints = {
     "s3-east.example.com": "s3-west.example.com",
     "s3-west.example.com": "s3-east.example.com",
 }
+regions = {
+    "us-east-1": "s3-east.example.com",
+    "us-west-1": "s3-west.example.com",
+}
 
 
-def policy_check_region_redirect(req):
+def policy_check_region_redirect(req, jrq):
     if not bool(int(os.environ.get("REGION_REDIRECT", 0))):
         return (200, "", [])
-    logger.debug(f"check redirect {req.get('authority')} {req.get('region')}")
+    logger.info(f"check redirect {req.get('authority')} {req.get('region')}")
     if all(
         [
             req.get("authority") in ("s3-east.example.com"),
@@ -53,7 +57,8 @@ def policy_check_region_redirect(req):
             [
                 (
                     "Location",
-                    endpoints[req.get("authority")],
+                    f"{jrq['attributes']['request']['http']['scheme']}://"
+                    + f"{regions[req.get('region')]}/{jrq['attributes']['request']['http']['headers'][':path']}",
                 )
             ],
         )
@@ -74,21 +79,49 @@ def policy_check_region_redirect(req):
             [
                 (
                     "Location",
-                    endpoints[req.get("authority")],
+                    f"{jrq['attributes']['request']['http']['scheme']}://"
+                    + f"{regions[req.get('region')]}/{jrq['attributes']['request']['http']['headers'][':path']}",
                 )
             ],
         )
-    return (200, "")
+    elif all(
+        [
+            req.get("authority") in ("s3-east.example.com"),
+            req.get("region") == "us-west-1",
+        ]
+    ):
+        return (
+            308,
+            redirect308
+            % (
+                req.get("x-request-id"),
+                endpoints[req.get("authority")],
+                req.get("authority"),
+            ),
+            [
+                (
+                    "Location",
+                    f"{jrq['attributes']['request']['http']['scheme']}://"
+                    + f"{regions[req.get('region')]}/{jrq['attributes']['request']['http']['headers'][':path']}",
+                )
+            ],
+        )
+    return (200, "", [])
 
 
-def disable_policy_check_timebase(req):
+def disable_policy_check_timebase(req, jrq):
     logger.debug(
         f"check time {datetime.datetime.now().minute} % 3 {datetime.datetime.now().minute % 3 == 0}"
     )
     if datetime.datetime.now().minute % 3 == 0:
-        return 412, timerestriction % (
-            req.get("x-request-id"),
-            req.get("authority"),
-            req.get("authority"),
+        return (
+            412,
+            timerestriction
+            % (
+                req.get("x-request-id"),
+                req.get("authority"),
+                req.get("authority"),
+            ),
+            [],
         )
     return (200, "", [])

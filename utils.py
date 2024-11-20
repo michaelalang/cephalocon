@@ -1,10 +1,9 @@
 import base64
 import json
 import logging
-import os
 import sys
 import urllib
-from datetime import datetime, timedelta
+import urllib3
 
 logging.basicConfig(
     level=logging.INFO,
@@ -15,14 +14,22 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 
+def parse_presign_to_aws(query):
+    parsed = urllib3.util.parse_url(query)
+    oquy = dict(tuple(map(lambda x: x.split("="), parsed.query.split("&"))))
+    for k in oquy.keys():
+        oquy[k] = [urllib.parse.unquote_plus(oquy[k])]
+    return oquy
+
+
 def parse_aws_header(header, oquy):
     algo, credential, sighead, signature = "", "", "", ""
     region = "us-east-1"
     try:
         algo, credential, sighead, signature = header.replace(",", "").split()
-    except ValueError as awserr:
-        logger.debug(f"cannot parse AWS header {header}")
-        if oquy.get("X-Amz-Credential", None) != None:
+    except (AttributeError, ValueError) as awserr:
+        logger.debug(f"cannot parse AWS header {header} {awserr}")
+        if oquy.get("X-Amz-Credential", None) is not None:
             logger.debug(
                 f"X-Amz-Credential Header {oquy.get('X-Amz-Credential', None)}"
             )
@@ -32,11 +39,12 @@ def parse_aws_header(header, oquy):
                 credential = json.loads(base64.b64decode(credential)).get("id")
             except Exception as awserr:
                 # not b64encoded credentials
+                logger.debug(awserr)
                 pass
             region = oquy.get("X-Amz-Credential", ["user/date/us-east-1"])[0].split(
                 "/"
             )[2]
-            headers = oquy.get("X-Amz-SignedHeaders", "unknown")
+            sighead = oquy.get("X-Amz-SignedHeaders", "unknown")
             signature = oquy.get("X-Amz-Signature", "unknown")
 
         return dict(
@@ -53,18 +61,19 @@ def parse_aws_header(header, oquy):
         try:
             credential = json.loads(base64.b64decode(credential)).get("id")
         except Exception as awserr:
+            logger.debug(awserr)
             # not b64encoded credentials
             pass
     except ValueError as awserr:
-        logger.debug(f"cannot parse credential header {credential}")
+        logger.debug(f"cannot parse credential header {credential} {awserr}")
     try:
         sighead = sighead.split("=")[-1]
     except ValueError as awserr:
-        logger.debug(f"cannot parse signatureheaders header {sighead}")
+        logger.debug(f"cannot parse signatureheaders header {sighead} {awserr}")
     try:
         signature = signature.split("=")[-1]
     except ValueError as awserr:
-        logger.debug(f"cannot parse signature header {signature}")
+        logger.debug(f"cannot parse signature header {signature} {awserr}")
 
     return dict(
         algorithm=algo,
@@ -75,7 +84,7 @@ def parse_aws_header(header, oquy):
     )
 
 
-def parse_bucket(path):
+def parse_bucket(path, opar):
     try:
         bucket = path.split("/")[1]
         if "?" in bucket:
@@ -92,15 +101,20 @@ def parse_bucket(path):
 
 
 def parse_requests_data(data):
-    try:
+    # try:
+    if True:
         logger.debug(f"parse_requests_data in: {data}")
         opar = data["attributes"]["request"]["http"]
-        oquy = data.get("parsed_query")
-        authority = opar.get("headers").get(":authority")
+        oquy = data.get("parsed_query", {})
+        if oquy == {}:
+            oquy = parse_presign_to_aws(opar.get("path"))
+        authority = opar.get("headers", {}).get(
+            ":authority", opar.get("headers").get("host")
+        )
         auth = parse_aws_header(opar.get("headers", {}).get("authorization", ""), oquy)
-        bucket = parse_bucket(opar.get("headers").get(":path"))
+        bucket = parse_bucket(opar.get("headers", {}).get(":path"), opar)
         logger.debug(f"parse_requests_data bucket: {bucket} auth {auth}")
-        method = opar.get("headers").get(":method")
+        method = opar.get("headers", {}).get(":method")
         source = data["attributes"]["source"]["address"]["socketAddress"]["address"]
 
         def querysplit(content):
@@ -110,8 +124,9 @@ def parse_requests_data(data):
 
         # check presigned v2 and v4
         try:
-            presign = dict(querysplit(opar.get("headers").get(":path")))
+            presign = dict(querysplit(opar.get("headers", {}).get(":path")))
         except Exception as preerr:
+            logger.error(preerr)
             presign = {}
         if all(
             [
@@ -161,14 +176,15 @@ def parse_requests_data(data):
             authority=authority,
             length=length,
         )
-    except Exception as err:
-        logger.debug(f"parse_requests_data: {data}")
-        return dict(
-            region="us-east-1",
-            user="anonymous",
-            bucket="unknown",
-            method="unknown",
-            source="unknown",
-            authority="unknown",
-            length=0,
-        )
+    # except Exception as err:
+    #    logger.error(f"Error {err}")
+    #    logger.error(f"parse_requests_data: {data}")
+    #    return dict(
+    #        region="us-east-1",
+    #        user="anonymous",
+    #        bucket="unknown",
+    #        method="unknown",
+    #        source="unknown",
+    #        authority="unknown",
+    #        length=0,
+    #    )

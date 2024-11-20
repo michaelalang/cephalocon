@@ -16,7 +16,7 @@ import requests
 import urllib3.exceptions
 from envoy.type.v3 import http_status_pb2 as _http_status_pb2
 import envoy.config.core.v3.base_pb2 as _base_pb2
-from flask import Flask, Response, abort, jsonify, make_response, request
+from flask import Flask, Response, jsonify, request
 from google.protobuf.json_format import MessageToJson
 from google.rpc import status_pb2 as _grpc_status_pb2
 

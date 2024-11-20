@@ -58,7 +58,7 @@ def update(access_key, secret_key, region):
                 ACL="private",
                 Body=region.encode("utf8"),
             )
-            if not bool(int(os.environ.get('NOSLEEP', 0))):
+            if not bool(int(os.environ.get("NOSLEEP", 0))):
                 sleep(faker.random.random())
         except Exception as puterr:
             logger.error(f"[{access_key}/us-{region}-1](PUT): Exception {puterr}")
@@ -109,7 +109,7 @@ def adder(access_key, secret_key, region):
                     f"[{access_key}/us-{region}-1](PUT): {fkey} Exception {s3err}"
                 )
                 return
-            if not bool(int(os.environ.get('NOSLEEP', 0))):
+            if not bool(int(os.environ.get("NOSLEEP", 0))):
                 sleep(faker.random.random())
     except Exception as s3err:
         logger.error(f"[{access_key}/us-{region}-1](PUT): Exception {s3err}")
@@ -140,7 +140,9 @@ def getters(access_key, secret_key, region):
                             logger.error(
                                 f"[{access_key}/us-{region}-1](HEAD): {obj.get('Key')} Exception {s3err}"
                             )
-                        if faker.random_choices([True, False, True, True, True, False], 1)[0]:
+                        if faker.random_choices(
+                            [True, False, True, True, True, False], 1
+                        )[0]:
                             logger.info(
                                 f"[{access_key}/us-{region}-1](GET): {obj.get('Key')}"
                             )
@@ -152,7 +154,7 @@ def getters(access_key, secret_key, region):
                                 )
             except Exception as s3err:
                 logger.error(f"[{access_key}/us-{region}-1](GET): Exception {s3err}")
-            if not bool(int(os.environ.get('NOSLEEP', 0))):
+            if not bool(int(os.environ.get("NOSLEEP", 0))):
                 sleep(faker.random.random())
     except Exception as s3err:
         logger.error(f"[{access_key}/us-{region}-1](GET): Exception {s3err}")

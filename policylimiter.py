@@ -1,5 +1,4 @@
 import logging
-import os
 import sys
 
 import policy
@@ -18,6 +17,7 @@ logger = logging.getLogger(__name__)
 @observe_latency
 def policylimit(jrq):
     try:
+        logger.error(f"jrq={str(jrq)}")
         req = parse_requests_data(jrq)
         req["x-request-id"] = (
             jrq.get("attributes")
@@ -34,7 +34,7 @@ def policylimit(jrq):
         body = None
         headers = []
         for check in filter(lambda x: x.startswith("policy_check_"), dir(policy)):
-            check, body, headers = getattr(policy, check)(req)
+            check, body, headers = getattr(policy, check)(req, jrq)
             if not check == 200:
                 S3_POLICYLIMITED.labels(
                     req.get("user"),

@@ -3,7 +3,7 @@ import logging
 import os
 import sys
 from concurrent.futures import ThreadPoolExecutor, wait
-from time import sleep, time
+from time import sleep
 
 import boto3
 from botocore.client import Config
@@ -53,7 +53,9 @@ def getters(access_key, secret_key, region):
                             logger.error(
                                 f"[{access_key}/us-{region}-1](HEAD): {obj.get('Key')} Exception {s3err}"
                             )
-                        if faker.random_choices([True, False, True, True, True, False], 1)[0]:
+                        if faker.random_choices(
+                            [True, False, True, True, True, False], 1
+                        )[0]:
                             logger.info(
                                 f"[{access_key}/us-{region}-1](GET): {obj.get('Key')}"
                             )
@@ -65,7 +67,7 @@ def getters(access_key, secret_key, region):
                                 )
             except Exception as s3err:
                 logger.error(f"[{access_key}/us-{region}-1](GET): Exception {s3err}")
-            if not bool(int(os.environ.get('NOSLEEP', 0))):
+            if not bool(int(os.environ.get("NOSLEEP", 0))):
                 sleep(faker.random.random())
     except Exception as s3err:
         logger.error(f"[{access_key}/us-{region}-1](GET): Exception {s3err}")
