@@ -93,12 +93,12 @@ To highlty the endpoint more clearly we are going to use bash color codes for ea
 
 ```
 # on system wkst execute
-echo "echo -e '\e[0;31m'" > .east
-echo "echo -e '\e[0;32m'" > .west
-echo "echo -e '\e[1;37m'" > .tr
+echo "echo -e '\e[0;94m'" > .east
+echo "echo -e '\e[0;93m'" > .west
+echo "echo -e '\e[1;97m'" > .tr
 
-echo "echo -e '\e[0;31m'" > .fail
-echo "echo -e '\e[0;32m'" > .succeed
+echo "echo -e '\e[0;91m'" > .fail
+echo "echo -e '\e[0;92m'" > .succeed
 ```
 
 We should be able to connect to our RGW Clusters individually 
