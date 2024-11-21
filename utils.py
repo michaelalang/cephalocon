@@ -15,11 +15,16 @@ logger = logging.getLogger(__name__)
 
 
 def parse_presign_to_aws(query):
-    parsed = urllib3.util.parse_url(query)
-    oquy = dict(tuple(map(lambda x: x.split("="), parsed.query.split("&"))))
-    for k in oquy.keys():
-        oquy[k] = [urllib.parse.unquote_plus(oquy[k])]
-    return oquy
+    try:
+      parsed = urllib3.util.parse_url(query)
+      oquy = dict(tuple(map(lambda x: x.split("="), parsed.query.split("&"))))
+      for k in oquy.keys():
+          oquy[k] = [urllib.parse.unquote_plus(oquy[k])]
+      if oquy.get('X-Amz-Credential', False) is False:
+          return oquy
+      return oquy
+    except:
+      return {}
 
 
 def parse_aws_header(header, oquy):
@@ -101,8 +106,7 @@ def parse_bucket(path, opar):
 
 
 def parse_requests_data(data):
-    # try:
-    if True:
+    try:
         logger.debug(f"parse_requests_data in: {data}")
         opar = data["attributes"]["request"]["http"]
         oquy = data.get("parsed_query", {})
@@ -126,7 +130,7 @@ def parse_requests_data(data):
         try:
             presign = dict(querysplit(opar.get("headers", {}).get(":path")))
         except Exception as preerr:
-            logger.error(preerr)
+            logger.debug(preerr)
             presign = {}
         if all(
             [
@@ -176,15 +180,15 @@ def parse_requests_data(data):
             authority=authority,
             length=length,
         )
-    # except Exception as err:
-    #    logger.error(f"Error {err}")
-    #    logger.error(f"parse_requests_data: {data}")
-    #    return dict(
-    #        region="us-east-1",
-    #        user="anonymous",
-    #        bucket="unknown",
-    #        method="unknown",
-    #        source="unknown",
-    #        authority="unknown",
-    #        length=0,
-    #    )
+    except Exception as err:
+       logger.debug(f"Error {err}")
+       logger.debug(f"parse_requests_data: {data}")
+       return dict(
+           region="us-east-1",
+           user="anonymous",
+           bucket="unknown",
+           method="unknown",
+           source="unknown",
+           authority="unknown",
+           length=0,
+       )
