@@ -1,18 +1,10 @@
 import logging
 import sys
-from functools import wraps
 import time
+from functools import wraps
 
-from prometheus_client import (
-    CollectorRegistry,
-    Counter,
-    Enum,
-    Gauge,
-    Histogram,
-    Info,
-    Summary,
-    multiprocess,
-)
+from prometheus_client import (CollectorRegistry, Counter, Enum, Gauge,
+                               Histogram, Info, Summary, multiprocess)
 from prometheus_client.openmetrics.exposition import generate_latest
 
 from utils import parse_requests_data

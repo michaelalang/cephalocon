@@ -3,6 +3,7 @@ import json
 import logging
 import sys
 import urllib
+
 import urllib3
 
 logging.basicConfig(
@@ -16,15 +17,15 @@ logger = logging.getLogger(__name__)
 
 def parse_presign_to_aws(query):
     try:
-      parsed = urllib3.util.parse_url(query)
-      oquy = dict(tuple(map(lambda x: x.split("="), parsed.query.split("&"))))
-      for k in oquy.keys():
-          oquy[k] = [urllib.parse.unquote_plus(oquy[k])]
-      if oquy.get('X-Amz-Credential', False) is False:
-          return oquy
-      return oquy
+        parsed = urllib3.util.parse_url(query)
+        oquy = dict(tuple(map(lambda x: x.split("="), parsed.query.split("&"))))
+        for k in oquy.keys():
+            oquy[k] = [urllib.parse.unquote_plus(oquy[k])]
+        if oquy.get("X-Amz-Credential", False) is False:
+            return oquy
+        return oquy
     except:
-      return {}
+        return {}
 
 
 def parse_aws_header(header, oquy):
@@ -181,14 +182,14 @@ def parse_requests_data(data):
             length=length,
         )
     except Exception as err:
-       logger.debug(f"Error {err}")
-       logger.debug(f"parse_requests_data: {data}")
-       return dict(
-           region="us-east-1",
-           user="anonymous",
-           bucket="unknown",
-           method="unknown",
-           source="unknown",
-           authority="unknown",
-           length=0,
-       )
+        logger.debug(f"Error {err}")
+        logger.debug(f"parse_requests_data: {data}")
+        return dict(
+            region="us-east-1",
+            user="anonymous",
+            bucket="unknown",
+            method="unknown",
+            source="unknown",
+            authority="unknown",
+            length=0,
+        )
