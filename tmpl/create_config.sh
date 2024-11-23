@@ -34,13 +34,22 @@ export region1=${Oregion1}
 export region2=${Oregion2}
 export rewrite="s3-$(echo ${region1} | cut -f2 -d'-').$(echo ${dstrfqdn} | cut -f2- -d'.')"
 cat routes_dashboard.tmpl | envsubst >> envoy-config.yaml
+export region=${Oregion2}
+export region1=${Oregion2}
+export region2=${Oregion1}
+export rewrite="s3-$(echo ${region1} | cut -f2 -d'-').$(echo ${dstrfqdn} | cut -f2- -d'.')"
+cat routes_dashboard.tmpl | envsubst >> envoy-config.yaml
+
+export region=${Oregion1}
+export region1=${Oregion1}
+export region2=${Oregion2}
+export rewrite="s3-$(echo ${region1} | cut -f2 -d'-').$(echo ${dstrfqdn} | cut -f2- -d'.')"
 cat routes.tmpl | envsubst >> envoy-config.yaml
 
 export region=${Oregion2}
 export region1=${Oregion2}
 export region2=${Oregion1}
 export rewrite="s3-$(echo ${region1} | cut -f2 -d'-').$(echo ${dstrfqdn} | cut -f2- -d'.')"
-cat routes_dashboard.tmpl | envsubst >> envoy-config.yaml
 cat routes.tmpl | envsubst >> envoy-config.yaml
 
 region=${Oregion1}
